@@ -1,194 +1,153 @@
-# TakeMeter
+Community Choice and Reasoning
 
-TakeMeter is a text classification project that categorizes posts from the Reddit community **r/LetsTalkMusic** into different discussion types using natural language processing. The project compares the performance of a zero-shot large language model (Groq Llama 3.3 70B) with a fine-tuned DistilBERT classifier trained on a manually labeled dataset.
+I chose r/LetsTalkMusic because it contains a wide variety of discussion styles rather than simple questions or recommendations. Many posts include detailed musical analysis, personal experiences, and strong opinions, making it a good community for building a multi-class text classifier. The differences between these discussion styles are meaningful but sometimes subtle, making the classification task both interesting and challenging.
 
----
+Label Taxonomy (Additional Examples)
+Analysis
 
-# Project Goal
+Example 1:
 
-The goal of this project is to compare a zero-shot Llama 3.3 model accessed through the Groq API with a fine-tuned DistilBERT classifier to determine whether supervised training on a small, domain-specific dataset improves classification performance.
+Radiohead's Kid A completely changed alternative rock because it incorporated electronic music without abandoning strong songwriting.
 
----
+Example 2:
 
-# Community
+Fleetwood Mac's Rumours remains influential because each songwriter contributed a unique perspective while maintaining a consistent overall sound.
 
-**Subreddit:** r/LetsTalkMusic
+Personal Reaction
 
-r/LetsTalkMusic is a discussion-based Reddit community where users share opinions, analyses, and personal experiences about artists, albums, genres, and the music industry. Unlike recommendation-focused communities, posts typically encourage thoughtful conversation and debate.
+Example 1:
 
----
+This album reminds me of high school and always makes me nostalgic.
 
-# Labels
+Example 2:
 
-The dataset contains three categories.
+I never skip this song because it instantly improves my mood.
 
-## analysis
+Hot Take
 
-Posts that explain an opinion using reasoning, comparisons, examples, or evidence.
+Example 1:
 
-**Example:**
+Vinyl sounds worse than streaming and people only pretend otherwise.
 
-> Kendrick Lamar's albums stand out because of their storytelling, lyrical depth, and consistent themes across each project.
+Example 2:
 
----
+Taylor Swift is the most overrated artist of this generation.
 
-## personal_reaction
+Data Collection and Labeling Process
 
-Posts that mainly express personal feelings, memories, or preferences without providing detailed reasoning.
+Posts and comments were manually collected from r/LetsTalkMusic and labeled according to the three-category taxonomy. Each example was reviewed individually and assigned the label that best represented the primary intent of the text. When a post contained multiple characteristics, the label was determined by identifying the dominant communication style rather than isolated phrases. This manual labeling process helped create a consistent supervised learning dataset.
 
-**Example:**
+Difficult-to-Label Examples
+Example 1
 
-> I absolutely love this album. It always puts me in a good mood.
+Post:
 
----
+I think Kendrick is the greatest rapper alive because every album tells a different story.
 
-## hot_take
+Chosen Label: Analysis
 
-Posts that make strong or controversial opinions without meaningful evidence or explanation.
+Reason:
 
-**Example:**
+Although the post expresses an opinion, it also provides supporting reasoning by discussing storytelling across albums.
 
-> The Beatles are the most overrated band ever.
+Example 2
 
----
+Post:
 
-# Dataset
+Pink Floyd is overrated.
 
-* **Total examples:** 201
-* **Source:** Manually labeled Reddit posts and comments from r/LetsTalkMusic
+Chosen Label: Hot Take
 
-## Label Distribution
+Reason:
 
-| Label             | Count |
-| ----------------- | ----: |
-| analysis          |   141 |
-| personal_reaction |    32 |
-| hot_take          |    28 |
+The statement makes a strong opinion without offering any supporting evidence.
 
-The dataset was manually labeled to create supervised training data for the classifier.
+Example 3
 
-The data was split using **70% training, 15% validation, and 15% testing** with stratified sampling to preserve the class distribution across all three datasets.
+Post:
 
----
+This album helped me through a difficult time in my life.
 
-# Model
+Chosen Label: Personal Reaction
 
-The fine-tuned classifier uses:
+Reason:
 
-* DistilBERT (`distilbert-base-uncased`)
-* Hugging Face Transformers
-* PyTorch
-* Scikit-learn
+The post focuses on a personal emotional experience rather than analyzing the music itself.
 
-### Training Configuration
+Fine-Tuning Decisions
 
-* Epochs: 3
-* Learning Rate: 2e-5
-* Batch Size: 16
-* Weight Decay: 0.01
+The DistilBERT model was fine-tuned for three epochs using a learning rate of 2e-5. Three epochs were selected because the dataset contained only 201 labeled examples, reducing the risk of overfitting while still allowing the model to learn meaningful patterns. The learning rate of 2e-5 follows common best practices for fine-tuning transformer-based language models.
 
----
+Baseline Prompt
 
-# Zero-Shot Baseline
+The zero-shot baseline used the Groq API with the Llama 3.3 70B Versatile model. The prompt described the three labels, provided one example for each category, included decision rules for ambiguous cases, and instructed the model to respond using only one valid label.
 
-The baseline classifier used:
+Per-Class Evaluation
+Zero-Shot Baseline
+Label	Precision	Recall	F1
+analysis	1.00	0.59	0.74
+personal_reaction	0.33	1.00	0.50
+hot_take	1.00	0.75	0.86
 
-* Groq API
-* Llama 3.3 70B Versatile
+Overall Accuracy: 67.7%
 
-The model received label definitions and examples through prompt engineering and classified each post without additional training.
+Fine-Tuned DistilBERT
+Label	Precision	Recall	F1
+analysis	0.71	1.00	0.83
+personal_reaction	0.00	0.00	0.00
+hot_take	0.00	0.00	0.00
 
-### Baseline Accuracy
+Overall Accuracy: 71.0%
 
-**67.7%**
+Confusion Matrix (Markdown)
+Actual \ Predicted	Analysis	Personal Reaction	Hot Take
+Analysis	22	0	0
+Personal Reaction	5	0	0
+Hot Take	4	0	0
+Incorrect Predictions
+Example 1
 
----
+Actual: Personal Reaction
 
-# Fine-Tuned Results
+Predicted: Analysis
 
-After training DistilBERT on the manually labeled dataset:
+The model focused on descriptive language rather than recognizing that the post primarily expressed personal feelings.
 
-### Fine-Tuned Accuracy
+Example 2
 
-**71.0%**
+Actual: Hot Take
 
-### Improvement
+Predicted: Analysis
 
-**+3.2 percentage points** compared to the zero-shot baseline.
+The model interpreted the opinion as analytical despite the lack of supporting evidence.
 
----
+Example 3
 
-# Evaluation
+Actual: Personal Reaction
 
-Evaluation was performed on a held-out **test set of 31 examples**.
+Predicted: Analysis
 
-### Results Comparison
+The post contained music-related discussion, causing the classifier to favor the majority class.
 
-| Model                      |  Accuracy |
-| -------------------------- | --------: |
-| Zero-shot Groq (Llama 3.3) | **67.7%** |
-| Fine-tuned DistilBERT      | **71.0%** |
+Sample Classifications
+Example	Predicted Label	Confidence	Correct
+"Kendrick's albums tell better stories than most modern rappers."	Analysis	0.94	✅
+"This album always makes me emotional."	Analysis	0.72	❌
+"The Beatles are overrated."	Analysis	0.68	❌
+"Radiohead changed alternative music forever because..."	Analysis	0.96	✅
+Reflection
 
-## Confusion Matrix
+The fine-tuned DistilBERT model improved overall accuracy from 67.7% to 71.0%, demonstrating that supervised training on a domain-specific dataset can outperform a zero-shot baseline. However, the model heavily favored the majority class, indicating that the limited and imbalanced dataset prevented it from learning strong decision boundaries for the minority classes. With additional labeled examples and a more balanced dataset, the classifier would likely achieve better performance across all three categories.
 
-![Confusion Matrix](confusion_matrix.png)
+Spec Reflection
 
-The confusion matrix shows that the model correctly classified nearly every **analysis** example but struggled to distinguish **personal_reaction** and **hot_take** posts. This behavior is expected because the dataset is imbalanced:
+The project specification helped define a structured workflow by separating planning, data collection, baseline evaluation, fine-tuning, and analysis into distinct stages. During implementation, the workflow diverged slightly because additional examples were added to the dataset after the initial planning phase to improve class balance and overall model performance.
 
-* analysis: 141 examples
-* personal_reaction: 32 examples
-* hot_take: 28 examples
+AI Usage
 
-With a larger and more balanced dataset, the classifier would likely improve its ability to recognize the minority classes.
+Artificial intelligence tools were used throughout the project as development assistants rather than replacements for manual work.
 
----
+AI was used to help debug Python, Git, Google Colab, and Hugging Face errors encountered during implementation. All code was reviewed, executed, and tested before being included in the final project.
+AI was used to improve documentation, including refining the README structure, grammar, and explanations. The dataset labels, evaluation results, and final analysis were based on the actual outputs produced during training.
 
-# Repository Contents
-
-* `takemeter.ipynb` — Complete notebook
-* `takemeter_dataset_200plus.csv` — Manually labeled dataset
-* `planning.md` — Project planning and label definitions
-* `evaluation_results.json` — Evaluation metrics
-* `confusion_matrix.png` — Confusion matrix visualization
-
----
-
-# How to Run
-
-1. Clone the repository.
-
-2. Install the required packages:
-
-```bash
-pip install transformers datasets torch scikit-learn pandas matplotlib groq
-```
-
-3. Open the notebook:
-
-```bash
-jupyter notebook takemeter.ipynb
-```
-
-or upload the notebook to Google Colab.
-
-4. Add a valid Groq API key before running the zero-shot baseline.
-
-5. Run the notebook from top to bottom.
-
----
-
-# Future Improvements
-
-Possible improvements include:
-
-* Collect a larger labeled dataset.
-* Balance the three classes.
-* Experiment with larger transformer models.
-* Tune additional hyperparameters.
-* Apply data augmentation to improve minority-class performance.
-
----
-
-# Conclusion
-
-This project demonstrated that fine-tuning DistilBERT on a manually labeled dataset of Reddit music discussions improved classification accuracy from **67.7%** to **71.0%**, outperforming the zero-shot Groq baseline. Although the classifier favored the majority class because of the limited and imbalanced dataset, the results show that supervised fine-tuning can improve performance on a domain-specific text classification task.
+Annotation assistance: AI helped brainstorm additional example posts, but every dataset entry was manually reviewed and assigned a final label before being included in the training data.
